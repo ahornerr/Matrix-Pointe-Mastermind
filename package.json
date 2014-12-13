@@ -1,0 +1,23 @@
+{
+  "name": "Mastermind_Programming_Assignment",
+  "version": "1.0.0",
+  "description": "Matirx Pointe Software Mastermind console program",
+  "main": "mastermind.js",
+  "dependencies": {
+    "prompt": "^0.2.14"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ahornerr/Matrix-Pointe-Mastermind.git"
+  },
+  "author": "Andy Horner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ahornerr/Matrix-Pointe-Mastermind/issues"
+  },
+  "homepage": "https://github.com/ahornerr/Matrix-Pointe-Mastermind"
+}
