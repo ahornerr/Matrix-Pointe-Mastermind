@@ -1,4 +1,6 @@
 /* global -Promise */
+// This is to prevent a JSHint warning
+
 var Promise = require("bluebird"),
     prompt = require('prompt'),
     nconf = require('nconf'),
@@ -33,7 +35,7 @@ prompt.start();
 
 var getPrompt = Promise.promisify(prompt.get);
 
-function mainLoop() {
+function gameLoop() {
     var guesses = 0,
         maxGuesses = nconf.get('maxGuesses'),
         code = createSecretCode();
@@ -55,12 +57,13 @@ function mainLoop() {
     });
 }
 
-function printEndGame() {
-    console.log("\nThanks for playing Andy\'s Mastermind game!");
-}
-
-function pluralizeGuess(num) {
-    return (num > 1) ? "guesses" : "guess";
+function createSecretCode() {
+    var code = "";
+    // Generates a string 4 characters long, each character from 1 to 6
+    for (var i = 0; i < 4; i++) {
+        code += Math.floor(6 * Math.random() + 1);
+    }
+    return code;
 }
 
 function promptGuess(code, guesses, maxGuesses) {
@@ -82,6 +85,10 @@ function promptGuess(code, guesses, maxGuesses) {
             return promptGuess(code, guesses, maxGuesses);
         }
     });
+}
+
+function pluralizeGuess(num) {
+    return (num > 1) ? "guesses" : "guess";
 }
 
 function isGuessCorrect(code, guess) {
@@ -117,8 +124,10 @@ function calculateScore(code, guess) {
                 if (ignoredGuessIndicies.indexOf(guessIndex) == -1) {
                     output += "-";
                     ignoredGuessIndicies.push(guessIndex);
+                    // Break out of the while loop if we found a match for this character in the guess
                     break;
                 } else {
+                    //Search the guess string for the next instance of the code character
                     guessIndex = guess.indexOf(codeElem, guessIndex + 1);
                 }
             }
@@ -127,12 +136,8 @@ function calculateScore(code, guess) {
     return output;
 }
 
-function createSecretCode() {
-    var code = "";
-    for (var i = 0; i < 4; i++) {
-        code += Math.floor(Math.random() * (6) + 1);
-    }
-    return code;
+function printEndGame() {
+    console.log("\nThanks for playing Andy\'s Mastermind game!");
 }
 
-mainLoop();
+gameLoop();
