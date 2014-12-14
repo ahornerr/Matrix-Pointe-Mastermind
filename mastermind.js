@@ -1,27 +1,77 @@
 /* global -Promise */
 var Promise = require("bluebird"),
     prompt = require('prompt'),
-    _ = require('underscore');
+    nconf = require('nconf'),
+    fs = require('fs');
 
-// prompt.message = "";
-// prompt.delimiter = "";
-prompt.colors = false;
-prompt.start();
-var getPrompt = Promise.promisify(prompt.get);
+var configFileLocation = './config.json';
 
-var guessProperties = [{
+nconf.argv()
+    .file({
+        file: configFileLocation
+    });
+
+// Load the configuration file (./config.json)
+nconf.load();
+// Set the config defaults (only if the configuration file doesn't exist)
+nconf.defaults({
+    'maxGuesses': 10
+});
+// This recreates the configuration file in case it gets deleted.
+nconf.set('maxGuesses', nconf.get('maxGuesses'));
+nconf.save();
+
+var guessProperties = {
     name: 'Guess',
+    type: 'string',
+    required: true,
     validator: /^[1-6]{4}$/,
     warning: 'Guess must be 4 digits between 1 and 6'
-}];
+};
+
+prompt.start();
+
+var getPrompt = Promise.promisify(prompt.get);
+
+function mainLoop() {
+    var guesses = 0,
+        maxGuesses = nconf.get('maxGuesses'),
+        code = createSecretCode();
+
+    promptGuess(code, guesses, maxGuesses).then(function(result) {
+        if (result.correct) {
+            console.log("\nYou solved it! Took " + result.guesses + " " + pluralizeGuess(result.guesses));
+        } else {
+            console.log("\nYou lose :( The code was: " + code);
+        }
+        printEndGame();
+    }).catch(function(error) {
+        if (error.name == 'OperationalError') {
+            console.log("\n\nYou lose :( The code was: " + code);
+            printEndGame();
+        } else {
+            console.error("Unexpected error: " + error);
+        }
+    });
+}
+
+function printEndGame() {
+    console.log("\nThanks for playing Andy\'s Mastermind game!");
+}
+
+function pluralizeGuess(num) {
+    return (num > 1) ? "guesses" : "guess";
+}
 
 function promptGuess(code, guesses, maxGuesses) {
-    console.log("You have " + (maxGuesses - guesses) + " remaining tries to crack the code.");
+    var remainingGuesses = maxGuesses - guesses;
+    console.log("You have " + remainingGuesses + " remaining " + pluralizeGuess(remainingGuesses) + " to crack the code.");
     return getPrompt(guessProperties).then(function(input) {
         var guess = input.Guess;
         guesses++;
 
         var correct = isGuessCorrect(code, guess);
+        // Either the guess was correct, or there are no guesses remaining
         if (correct || (!correct && guesses >= maxGuesses)) {
             return {
                 correct: correct,
@@ -34,72 +84,53 @@ function promptGuess(code, guesses, maxGuesses) {
     });
 }
 
-function mainLoop() {
-    var guesses = 0,
-        maxGuesses = 10,
-        correct = false,
-        code = createSecretCode();
-
-    console.log(code);
-    var codeString = _.reduce(code, function(memo, num) {
-        memo + num;
-    }, "");
-    promptGuess(code, guesses, maxGuesses).then(function(result) {
-        if (result.correct) {
-            console.log("You solved it! Took " + result.guesses + " guesses.");
-        } else {
-            console.log("You lose :( The code was: " + codeString);
-        }
-    }).catch(function(error) {
-        if (error.name == 'OperationalError') {
-            console.log("Thanks for playing!");
-        } else {
-            console.error(error);
-        }
-    });
-}
-
 function isGuessCorrect(code, guess) {
-    var correct = true;
-    for (var i = 0; i < code.length; i++) {
-        if (code[i] != guess[i]) {
-            return false;
-        }
-    }
-    return true;
+    return code == guess;
 }
 
 function calculateScore(code, guess) {
-    var matches = "",
-        wrongPos = "",
-        codeCopy = code.slice(0),
-        guessCopy = _.map(guess.split(""), function(num) {
-            return parseInt(num);
-        });
+    var output = "",
+        ignoredCodeIndicies = [],
+        ignoredGuessIndicies = [];
 
     //Loop to check for exact matches
-    for (var i = 0; i < guess.length; i++) {
-        if (guess[i] == code[i]) {
-            matches += "+";
-            codeCopy[i] = -1;
-            guessCopy[i] = 0;
+    for (var i = 0; i < code.length; i++) {
+        if (code[i] == guess[i]) {
+            output += "+";
+            // An ignored code index is when there is an exact match on a number (right number, right position)
+            // We also ignore this index in the guess because it's an exact match
+            ignoredGuessIndicies.push(i);
+            ignoredCodeIndicies.push(i);
         }
     }
 
-    for (var i = 0; i < guessCopy.length; i++) {
-        var index = codeCopy.indexOf(guessCopy[i]);
-        if (index > -1) {
-            wrongPos += "-";
-            codeCopy[index] = "";
+    // Loop to check for matches in the wrong position
+    // While ignoring exact matches
+    for (var codeIndex = 0; codeIndex < code.length; codeIndex++) {
+        if (ignoredCodeIndicies.indexOf(codeIndex) == -1) {
+            var codeElem = code[codeIndex];
+            var guessIndex = guess.indexOf(codeElem);
+            // (guessIndex != -1) means that code character exists somewhere in the guess
+            while (guessIndex != -1) {
+                // (ignoredGuessIndicies.indexOf(guessIndex) == -1) means this index of the character in the guess is not ignored
+                // for an index to be ignored means it was an exact match already, or already counted as a wrong position match 
+                if (ignoredGuessIndicies.indexOf(guessIndex) == -1) {
+                    output += "-";
+                    ignoredGuessIndicies.push(guessIndex);
+                    break;
+                } else {
+                    guessIndex = guess.indexOf(codeElem, guessIndex + 1);
+                }
+            }
         }
     }
-    return matches + wrongPos;
+    return output;
 }
 
 function createSecretCode() {
-    var code = [];
+    var code = "";
     for (var i = 0; i < 4; i++) {
-        code[i] = Math.floor(Math.random() * (6) + 1);
+        code += Math.floor(Math.random() * (6) + 1);
     }
     return code;
 }

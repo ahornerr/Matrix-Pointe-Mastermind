@@ -4,6 +4,8 @@
   "description": "Matirx Pointe Software Mastermind console program",
   "main": "mastermind.js",
   "dependencies": {
+    "bluebird": "^2.3.11",
+    "nconf": "^0.7.1",
     "prompt": "^0.2.14"
   },
   "devDependencies": {},
