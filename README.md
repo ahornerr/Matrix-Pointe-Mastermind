@@ -1,15 +1,22 @@
 Matrix Pointe Software Mastermind console application
 ========================
-Author: Andy Horner
+
+Author
+------
+Andy Horner
+
+Description
+-----------
+An implementation of the code-breaking game, Mastermind, in Node.js
 
 Requirements
 -------------
-* Node.JS
-* NPM (Node Package Manager)
+* Node.js (http://nodejs.org/download/)
+* NPM (Node Package Manager, included with Node.js)
 
 Setup
 -----
-To setup the game, please run the following command:
+To setup the game, please run the following command to install dependencies:
 
     npm install
 
